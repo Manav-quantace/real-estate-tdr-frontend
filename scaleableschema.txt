@@ -1,0 +1,223 @@
+🧱 Core Design Principles (important)
+
+Single source of truth for project metadata
+
+Immutable after publish (except allowed fields)
+
+Role-based permissions enforced at API/service layer
+
+Separate “asks” tables (never inline them)
+
+Audit-friendly
+
+Extensible to other workflows
+
+1️⃣ Core table: saleable_projects
+
+This maps 1:1 with your saleableCreateSchema.
+
+✅ PostgreSQL (recommended)
+CREATE TABLE saleable_projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- identity
+    project_id TEXT NOT NULL UNIQUE,              -- PRJ-SALE-0001
+    title TEXT NOT NULL,
+
+    -- property metadata (LOCKS AFTER PUBLISH)
+    property_type TEXT NOT NULL CHECK (
+        property_type IN ('cooperative_society', 'private_owner')
+    ),
+    owner_entity_name TEXT NOT NULL,
+    address_line TEXT NOT NULL,
+    city TEXT NOT NULL,
+    zone TEXT NOT NULL,
+
+    plot_area_sqm NUMERIC(12, 2) NOT NULL CHECK (plot_area_sqm >= 0),
+    existing_builtup_sqm NUMERIC(12, 2) NOT NULL CHECK (existing_builtup_sqm >= 0),
+
+    redevelopment_intent_notes TEXT,
+
+    -- consent
+    consent_state TEXT NOT NULL CHECK (
+        consent_state IN ('DRAFT', 'CONSENTED', 'WITHDRAWN')
+    ),
+    consent_captured_at TIMESTAMPTZ,
+
+    -- bidding (UI captured, engine-controlled later)
+    bidding_round_t0 INTEGER NOT NULL CHECK (bidding_round_t0 >= 0),
+    bidding_window_start TIMESTAMPTZ,
+    bidding_window_end TIMESTAMPTZ,
+    timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+
+    -- lifecycle
+    status TEXT NOT NULL CHECK (
+        status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')
+    ) DEFAULT 'DRAFT',
+
+    published_at TIMESTAMPTZ,
+    metadata_locked BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- ownership & RBAC hooks
+    created_by_user_id UUID NOT NULL,
+    owning_org_id UUID,
+
+    -- audit
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+🔍 Why this is correct
+
+No JSON blob → queryable, enforceable
+
+metadata_locked → UI + API both enforce
+
+status + published_at → lifecycle clarity
+
+created_by_user_id → RBAC enforcement
+
+owning_org_id → societies / firms later
+
+2️⃣ Role system (minimal but scalable)
+
+You’ll need role awareness, not hardcoding.
+
+roles
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,          -- OWNER, DEVELOPER, ADMIN
+    description TEXT
+);
+
+user_roles
+CREATE TABLE user_roles (
+    user_id UUID NOT NULL,
+    role_id UUID NOT NULL,
+    PRIMARY KEY (user_id, role_id)
+);
+
+
+This allows:
+
+Owner + Developer roles
+
+Admin override
+
+Future roles without migrations
+
+3️⃣ Project-level access control
+
+Roles alone are NOT enough — access is project-scoped.
+
+saleable_project_members
+CREATE TABLE saleable_project_members (
+    project_id UUID NOT NULL REFERENCES saleable_projects(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    role TEXT NOT NULL CHECK (
+        role IN ('OWNER', 'DEVELOPER', 'VIEWER')
+    ),
+
+    added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    PRIMARY KEY (project_id, user_id)
+);
+
+Why this matters
+
+This enables:
+
+Page	Allowed roles
+project detail	OWNER, DEVELOPER
+edit	OWNER (if not locked)
+owner-ask	OWNER
+developer-ask	DEVELOPER
+publish	OWNER
+admin override	ADMIN
+
+This table is the backbone of RBAC.
+
+4️⃣ Developer Ask (separate table)
+
+DO NOT embed this in saleable_projects.
+
+CREATE TABLE saleable_developer_asks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES saleable_projects(id) ON DELETE CASCADE,
+
+    ask_notes TEXT,
+    min_fsi NUMERIC(6,2),
+    expected_revenue NUMERIC(14,2),
+
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+✔ One-to-many
+✔ Versionable later
+✔ Role-restricted
+
+5️⃣ Owner Ask (separate table)
+CREATE TABLE saleable_owner_asks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES saleable_projects(id) ON DELETE CASCADE,
+
+    reserve_price NUMERIC(14,2),
+    relocation_terms TEXT,
+    min_carpet_area NUMERIC(10,2),
+
+    created_by_user_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+6️⃣ Audit log (you WILL need this)
+
+You already hinted at this earlier — this is mandatory.
+
+CREATE TABLE audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    entity_type TEXT NOT NULL,      -- saleable_project
+    entity_id UUID NOT NULL,
+
+    action TEXT NOT NULL,           -- CREATED, UPDATED, PUBLISHED
+    performed_by_user_id UUID NOT NULL,
+
+    snapshot JSONB,                 -- before/after snapshot
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+7️⃣ Indexes you SHOULD add
+CREATE INDEX idx_saleable_projects_status
+    ON saleable_projects(status);
+
+CREATE INDEX idx_saleable_projects_city_zone
+    ON saleable_projects(city, zone);
+
+CREATE INDEX idx_project_members_user
+    ON saleable_project_members(user_id);
+
+🔁 How this maps to your pages
+Page	Data Source
+/saleable/projects/[id]	saleable_projects
+/edit	same + metadata_locked
+/developer-ask	saleable_developer_asks
+/owner-ask	saleable_owner_asks
+dashboard	indexed subset
+RBAC checks	saleable_project_members
+🧠 Important: UI enforcement ≠ Security
+
+UI will:
+
+Disable fields when metadata_locked = true
+
+Hide actions based on role
+
+API must:
+
+Re-check role
+
+Re-check lock state
+
+Reject invalid mutations

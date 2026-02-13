@@ -1,0 +1,49 @@
+"use client"
+
+import type React from "react"
+
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { AdminNav } from "@/components/admin-nav"
+
+export default function AdminLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    const { isAuthenticated, isAdmin, loading } = useAuth()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!loading) {
+            if (!isAuthenticated) {
+                router.push("/admin/login")
+            } else if (!isAdmin) {
+                router.push("/dashboard")
+            }
+        }
+    }, [isAuthenticated, isAdmin, loading, router])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (!isAuthenticated || !isAdmin) {
+        return null
+    }
+
+    return (
+        <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+            <AdminNav />
+            <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+    )
+}
