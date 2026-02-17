@@ -1,5 +1,7 @@
+//app/(protected)/clearland/dashboard/page.tsx
 import { headers } from 'next/headers'
 import WorkflowDashboard from '../../components/workflow-dashboard'
+import Navbar from '../../components/navbar'
 
 
 type Role = 'GOV_AUTHORITY' | 'AUDITOR' | 'DEVELOPER' | 'BUYER' | 'SLUM_DWELLER' | 'AFFORDABLE_DEVELOPER' | 'CONTRACTOR'
@@ -77,15 +79,18 @@ export default async function ClearlandDashboardPage() {
     )
 
     return (
-        <WorkflowDashboard
-            workflow='clearland'
-            role={me.role as Role}
-            items={items}
-            userProfile={{
-                name: me.name,
-                email: me.email,
-                organization: me.organization,
-            }}
-        />
+        <main className="min-h-screen bg-background">
+            <Navbar />
+            <WorkflowDashboard
+                workflow='clearland'
+                role={me.role as Role}
+                items={items}
+                userProfile={{
+                    name: me.name,
+                    email: me.email,
+                    organization: me.organization,
+                }}
+            />
+        </main>
     )
 }

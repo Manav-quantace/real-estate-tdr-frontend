@@ -1,3 +1,4 @@
+//app/(protected)/components/navbar.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -248,17 +249,19 @@ export default function Navbar() {
                                 <div className='h-px bg-primary/10' />
 
                                 {/* Logout */}
-                                <motion.button
-                                    whileHover={{ backgroundColor: 'hsl(0, 0%, 0%, 0.05)' }}
-                                    onClick={() => {
-                                        // Handle logout
-                                        setIsMenuOpen(false)
-                                    }}
-                                    className='w-full px-4 py-3 flex items-center gap-3 text-sm text-secondary hover:text-secondary transition-colors text-left'
-                                >
-                                    <LogOut className='w-4 h-4' />
-                                    Logout
-                                </motion.button>
+                                <Link href="/logout">
+                                    <motion.button
+                                        whileHover={{ backgroundColor: 'hsl(0, 0%, 0%, 0.05)' }}
+                                        onClick={() => {
+                                            // Handle logout
+                                            setIsMenuOpen(false)
+                                        }}
+                                        className='w-full px-4 py-3 flex items-center gap-3 text-sm text-secondary hover:text-secondary transition-colors text-left'
+                                    >
+                                        <LogOut className='w-4 h-4' />
+                                        Logout
+                                    </motion.button>
+                                </Link>
                             </motion.div>
                         </div>
                     ) : null}

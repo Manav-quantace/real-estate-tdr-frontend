@@ -1,3 +1,4 @@
+//app/api/projects/[projectId]/publish/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 

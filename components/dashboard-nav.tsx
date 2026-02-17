@@ -68,8 +68,8 @@ export function DashboardNav() {
 
                 <div className="p-4 border-t border-border space-y-2">
                     <div className="px-3 py-2 text-sm">
-                        <p className="font-medium">{user?.full_name}</p>
-                        <p className="text-muted-foreground truncate">{user?.email}</p>
+                        <p className="font-medium">t</p>
+                        <p className="text-muted-foreground truncate">t</p>
                     </div>
                     <Button variant="ghost" className="w-full justify-start" onClick={logout}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -105,8 +105,8 @@ export function DashboardNav() {
 
                         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border space-y-2">
                             <div className="px-3 py-2 text-sm">
-                                <p className="font-medium">{user?.full_name}</p>
-                                <p className="text-muted-foreground truncate">{user?.email}</p>
+                                <p className="font-medium">t</p>
+                                <p className="text-muted-foreground truncate">t</p>
                             </div>
                             <Button variant="ghost" className="w-full justify-start" onClick={logout}>
                                 <LogOut className="mr-2 h-4 w-4" />

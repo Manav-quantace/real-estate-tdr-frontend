@@ -3,7 +3,7 @@
 import useSWR from "swr"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import AuthorityRoundControls from "@/app/authority/projects/[projectId]/rounds/AuthorityRoundControl"
+import AuthorityRoundControls from "@/app/(protected)/authority/projects/[projectId]/rounds/AuthorityRoundControl"
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
