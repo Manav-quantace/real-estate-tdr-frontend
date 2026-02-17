@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '24-lts'
+          node-version: '20'
 
       - name: npm install, build, and test
         run: |
@@ -52,4 +52,5 @@ jobs:
           app-name: 'Real-Estate-TDR'
           slot-name: 'Production'
           package: .
+
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6F48068A26934C3BA683BE22497C92D7 }}
